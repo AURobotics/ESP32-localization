@@ -1,5 +1,27 @@
 #include <Arduino.h>
+#include <FreeRTOSConfig.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
+#include <freertos/semphr.h>
+
+#include <esp_dsp.h>
+#include <cmath>
+
+#include <mqtt_client.h>
 #include <ESP32Encoder.h>
+
+/** libraries bashofhom banbst*/
+// #include <memory>
+// #include <optional>
+// #include <utility>
+// #include <vector>
+
+// #define GEAR_RATIO 44.91 //46.8
+// #define ENCODER_RESOLUTION 11
+// #define
+
+/** the following setup attempts to replicate the available Rover firmware and hardware */
 
 using encoderPin = uint8_t;
 enum EncoderMode {HALF_QUAD, FULL_QUAD, SINGLE};
@@ -34,6 +56,7 @@ void setup(){
 
     if (motorRight.isAttached() && motorLeft.isAttached())
     Serial.println("Encoders attached");
+    int x = cos(5.0*M_PI/180);
 
 }
 
