@@ -29,3 +29,16 @@ are impractical as water and air vehicles.
 - __Mapping techniques__
 - __anti-slipping mechanism__
 
+
+
+### Filtering Resources:
+- [Unscented Kalman Filter for 6DoF IMU](https://github.com/JChunX/ukf)
+- [Extended Kalman Filter for position & orientation tracking on ESP32 ](https://github.com/JChunX/imu-kalman)
+- [MPU driver](https://github.com/natanaeljr/esp32-MPU-driver)
+- [Gaussian filter](https://www.youtube.com/watch?v=oPgfa6G2AxE)
+- [Unscented Kalman Filter(video)](https://www.youtube.com/watch?v=c_6WDC66aVk)
+- [EKF esp32 example from espressif](https://docs.espressif.com/projects/esp-dsp/en/latest/esp32/esp-dsp-examples.html)
+- [Filters + particle filter](https://github.com/baggepinnen/LowLevelParticleFilters.jl)
+- [Open KF](https://github.com/Al-khwarizmi-780/OpenKF)
+- [Encoders and IMU sensor Fusion](https://medium.com/hackernoon/ghost-iv-sensor-fusion-encoders-imu-c099dd40a7b)
+- [How to fuse sensors stack exchange](https://robotics.stackexchange.com/questions/22115/how-to-actually-fuse-sensor-using-extended-kalman-filter)
