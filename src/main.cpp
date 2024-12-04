@@ -3,6 +3,11 @@
 #include <esp_timer.h>
 #include <hal/cpu_hal.h>
 
+#include <FreeRTOSConfig.h>
+#include <freertos/semphr.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 
 /**trying to improve overall speed of code execution
  *avoid using double precision floating points.
@@ -56,7 +61,7 @@ struct Odometry
 {
     Pose2D pose;
     Velocity2D vel;
-}loli;
+};
 
 
 struct Differential_drive final : ESP32Encoder{
@@ -107,6 +112,21 @@ Pose2D OdomUpdate(const Pose2D& prevPose, const Distance l, const Distance r) //
 auto motorRight = Differential_drive(27, 26);
 auto motorLeft = Differential_drive(12, 14);
 
+void OdomUpdate()
+{
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(10);
+
+    while (true)
+    {
+
+
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+    }
+
+}
+
+//will merge functions
 
 void setup(){
     Serial.begin(115200);
