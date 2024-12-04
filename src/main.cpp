@@ -9,7 +9,8 @@
 #include <freertos/task.h>
 
 
-/**trying to improve overall speed of code execution
+
+/** trying to improve overall speed of code execution
  *avoid using double precision floating points.
  *to measure time of a function:
 
@@ -33,8 +34,9 @@ void measure_important_function(void) {
 
 #define ENCODER_RESOLUTION 11
 #define GEAR_RATIO 44.912
+#define ENCODER_PPR (ENCODER_RESOLUTION * GEAR_RATIO)
 #define CIRCUMFERENCE (M_TWOPI * 0.065)
-#define PITCH 0.5
+#define PITCH 0.5 //width of the robot measured from the center of the wheels
 
 using EncoderPin = uint8_t;
 using Distance = float;
@@ -91,47 +93,77 @@ struct Differential_drive final : ESP32Encoder{
 
     ~Differential_drive() = default;
 
-    private:
     int64_t prevCount = 0;
 };
 
 
 
-Pose2D OdomUpdate(const Pose2D& prevPose, const Distance l, const Distance r) //Using 2d odometer
-{
-    Pose2D pose{};
-    const Distance d = (l + r) / 2;
-    const Angle d_theta = (r - l) / PITCH;
-    pose.x = prevPose.x + d * cos(prevPose.yaw + d_theta / 2);
-    pose.y = prevPose.y + d * sin(prevPose.yaw + d_theta / 2);
-    pose.yaw = prevPose.yaw + d_theta;
-    return pose;
-    }
+// Pose2D OdomUpdate(const Pose2D& prevPose, const Distance l, const Distance r) //Using 2d odometer
+// {
+//     Pose2D pose{};
+//     const Distance d = (l + r) / 2;
+//     const Angle d_theta = (r - l) / PITCH;
+//     pose.x = prevPose.x + d * cos(prevPose.yaw + d_theta / 2);
+//     pose.y = prevPose.y + d * sin(prevPose.yaw + d_theta / 2);
+//     pose.yaw = prevPose.yaw + d_theta;
+//     return pose;
+//     }
 
 
 auto motorRight = Differential_drive(27, 26);
 auto motorLeft = Differential_drive(12, 14);
 
-void OdomUpdate()
+ void OdomUpdate_2d(void* parameter)
 {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(10);
 
-    while (true)
-    {
+    Pose2D pose{};
+    constexpr TickType_t xFrequency = pdMS_TO_TICKS(10);
+    static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
+    TickType_t xLastWakeTime = xTaskGetTickCount(); //used to run the task at precisely 100Hz
 
-        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+    for (;;) {
+
+        const Distance l = (motorLeft.getCount() - motorLeft.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
+        const Distance r = (motorRight.getCount() - motorRight.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
+
+        motorRight.prevCount = motorRight.getCount();
+        motorLeft.prevCount = motorLeft.getCount();
+
+        const Distance d = (l + r) / 2;
+        const Angle d_theta = (r - l) / PITCH;
+
+        taskENTER_CRITICAL(&spinlock); //replace with mutex or semaphore (under research)
+
+        pose.x = pose.x + d * cosf(pose.yaw + d_theta / 2);
+        pose.y = pose.y + d * sinf(pose.yaw + d_theta / 2);
+        pose.yaw = pose.yaw + d_theta;
+
+        taskEXIT_CRITICAL(&spinlock);
+
+        Serial.println(uxTaskGetStackHighWaterMark(nullptr)); //to print the number of bytes left (multiply by 4), debugging purposes only
+
+        vTaskDelayUntil(&xLastWakeTime, xFrequency); //will try to replace all delays with suspension from other tasks, hope this doesnt turn into spahghetti
     }
 
 }
 
-//will merge functions
+void deadReckoning(const uint16_t samplingTime)
+{
+
+
+
+
+
+
+}
 
 void setup(){
     Serial.begin(115200);
+
+    // xTaskCreate(); //minimum stack  size for a task is aboout 750, add static allocation on top of it
 }
 
 void loop(){
-
+    vTaskDelete(nullptr);
 }
