@@ -28,7 +28,7 @@ void measure_important_function(void) {
 
 #define ENCODER_RESOLUTION 11
 #define GEAR_RATIO 44.912
-#define RADIUS (TWO_PI * 0.065)
+#define CIRCUMFERENCE (M_TWOPI * 0.065)
 #define PITCH 0.5
 
 using EncoderPin = uint8_t;
@@ -52,6 +52,12 @@ struct Velocity2D
     float yaw;
 };
 
+struct Odometry
+{
+    Pose2D pose;
+    Velocity2D vel;
+}loli;
+
 
 struct Differential_drive final : ESP32Encoder{
     Differential_drive(const EncoderPin pA, const EncoderPin pB,
@@ -72,12 +78,16 @@ struct Differential_drive final : ESP32Encoder{
         }
         clearCount();
     }
+
+    [[nodiscard]] float wheelVel(const uint8_t samplingTime)
+    {
+        return (getCount() - prevCount) * CIRCUMFERENCE / samplingTime;
+    }
+
     ~Differential_drive() = default;
 
-private:
-    int64_t m_prevCount = 0;
-
-
+    private:
+    int64_t prevCount = 0;
 };
 
 
@@ -97,12 +107,9 @@ Pose2D OdomUpdate(const Pose2D& prevPose, const Distance l, const Distance r) //
 auto motorRight = Differential_drive(27, 26);
 auto motorLeft = Differential_drive(12, 14);
 
+
 void setup(){
     Serial.begin(115200);
-
-    if (motorRight.isAttached() && motorLeft.isAttached())
-    Serial.println("Encoders attached");
-
 }
 
 void loop(){
