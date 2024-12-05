@@ -7,6 +7,7 @@
 #include <freertos/semphr.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/atomic.h>
 
 
 
@@ -41,9 +42,9 @@ void measure_important_function(void) {
 using EncoderPin = uint8_t;
 using Distance = float;
 using Angle = float;
+using Vel = float;
 
 enum EncoderMode {HALF_QUAD, FULL_QUAD, SINGLE};
-
 
 struct Pose2D
 {
@@ -64,7 +65,6 @@ struct Odometry
     Pose2D pose;
     Velocity2D vel;
 };
-
 
 struct Differential_drive final : ESP32Encoder{
     Differential_drive(const EncoderPin pA, const EncoderPin pB,
@@ -96,74 +96,66 @@ struct Differential_drive final : ESP32Encoder{
     int64_t prevCount = 0;
 };
 
-
-
-// Pose2D OdomUpdate(const Pose2D& prevPose, const Distance l, const Distance r) //Using 2d odometer
-// {
-//     Pose2D pose{};
-//     const Distance d = (l + r) / 2;
-//     const Angle d_theta = (r - l) / PITCH;
-//     pose.x = prevPose.x + d * cos(prevPose.yaw + d_theta / 2);
-//     pose.y = prevPose.y + d * sin(prevPose.yaw + d_theta / 2);
-//     pose.yaw = prevPose.yaw + d_theta;
-//     return pose;
-//     }
-
+Odometry odometry{};
+static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 auto motorRight = Differential_drive(27, 26);
 auto motorLeft = Differential_drive(12, 14);
 
- void OdomUpdate_2d(void* parameter)
+inline void poseUpdate(const Distance l, const Distance r, const Vel velL, const Vel velR) //Using 2d odometer, inline to reduce function call overhead
 {
+    taskENTER_CRITICAL(&spinlock); //or mutex
+    const Distance d = (l + r) / 2;
+    const Angle d_theta = (r - l) / PITCH;
+    odometry.pose.x = odometry.pose.x + d * cos(odometry.pose.yaw + d_theta / 2);
+    odometry.pose.y = odometry.pose.y + d * sin(odometry.pose.yaw + d_theta / 2);
+    odometry.pose.yaw = odometry.pose.yaw + d_theta;
+    taskEXIT_CRITICAL(&spinlock);
+}
 
-    Pose2D pose{};
-    constexpr TickType_t xFrequency = pdMS_TO_TICKS(10);
-    static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-    TickType_t xLastWakeTime = xTaskGetTickCount(); //used to run the task at precisely 100Hz
-
+ void Odom_2d(void* parameter)
+{
+     constexpr TickType_t xFrequency = pdMS_TO_TICKS(10);
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     for (;;) {
-
         const Distance l = (motorLeft.getCount() - motorLeft.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
         const Distance r = (motorRight.getCount() - motorRight.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
+
+        poseUpdate(l, r);
 
         motorRight.prevCount = motorRight.getCount();
         motorLeft.prevCount = motorLeft.getCount();
 
-        const Distance d = (l + r) / 2;
-        const Angle d_theta = (r - l) / PITCH;
-
-        taskENTER_CRITICAL(&spinlock); //replace with mutex or semaphore (under research)
-
-        pose.x = pose.x + d * cosf(pose.yaw + d_theta / 2);
-        pose.y = pose.y + d * sinf(pose.yaw + d_theta / 2);
-        pose.yaw = pose.yaw + d_theta;
-
-        taskEXIT_CRITICAL(&spinlock);
-
-        Serial.println(uxTaskGetStackHighWaterMark(nullptr)); //to print the number of bytes left (multiply by 4), debugging purposes only
-
-        vTaskDelayUntil(&xLastWakeTime, xFrequency); //will try to replace all delays with suspension from other tasks, hope this doesnt turn into spahghetti
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
-
 }
 
-void deadReckoning(const uint16_t samplingTime)
+
+void deadReckoning(void *parameter)
 {
+    constexpr TickType_t xFrequency = pdMS_TO_TICKS(10);
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    static unsigned long long prevTime;             //or use freeRTOS timer
+    for (;;)
+    {
+        constexpr uint8_t dt = 10;
+        const Distance l = motorLeft.wheelVel(dt);
+        const Distance r = motorRight.wheelVel(dt);
 
+        poseUpdate(l, r);
 
-
-
-
-
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+    }
 }
+
 
 void setup(){
     Serial.begin(115200);
 
-    // xTaskCreate(); //minimum stack  size for a task is aboout 750, add static allocation on top of it
 }
 
 void loop(){
-    vTaskDelete(nullptr);
+
+
 }

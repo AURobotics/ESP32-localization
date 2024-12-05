@@ -21,13 +21,13 @@ are impractical as water and air vehicles.
 
 
 ### TO DO: (Prioritized)
-- __Finish odom__ 
-- __Finish deadReckoning__
-- __IMU FILTERING (1D kalman)__
-- __Research Sensor Fusion__
-- __Optimize task handling__
-- __Mapping techniques__
-- __anti-slipping mechanism__
+- [x]  __Finish odom__ 
+- [x] __Finish deadReckoning__
+- [ ] __IMU FILTERING (1D kalman)__
+- [ ] __Research Sensor Fusion__
+- [ ] __Optimize task handling__
+- [ ] __Mapping techniques__
+- [ ] __anti-slipping mechanism__
 
 
 
