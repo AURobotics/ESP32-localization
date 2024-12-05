@@ -122,7 +122,7 @@ inline void poseUpdate(const Distance l, const Distance r, const Vel velL, const
         const Distance l = (motorLeft.getCount() - motorLeft.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
         const Distance r = (motorRight.getCount() - motorRight.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
 
-        poseUpdate(l, r);
+        poseUpdate(l, r, motorLeft.wheelVel(xFrequency), motorRight.wheelVel(xFrequency));
 
         motorRight.prevCount = motorRight.getCount();
         motorLeft.prevCount = motorLeft.getCount();
@@ -131,19 +131,25 @@ inline void poseUpdate(const Distance l, const Distance r, const Vel velL, const
     }
 }
 
-
+//The task will request the rpm at regular intervals. this task should have high priority as you dont want it to miss a deadline.
 void deadReckoning(void *parameter)
 {
-    constexpr TickType_t xFrequency = pdMS_TO_TICKS(10);
+    constexpr TickType_t xFrequency = pdMS_TO_TICKS(10); //maximum 2^8 - 1
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    static unsigned long long prevTime;             //or use freeRTOS timer
+    // static unsigned long long prevTime;             //or use freeRTOS timer
     for (;;)
     {
-        constexpr uint8_t dt = 10;
-        const Distance l = motorLeft.wheelVel(dt);
-        const Distance r = motorRight.wheelVel(dt);
+        /** request velocities from ESCs */
+        constexpr auto dt = static_cast<uint8_t>(xFrequency);
 
-        poseUpdate(l, r);
+        //integration functions for rover test.
+
+        const Vel velLeft = motorLeft.wheelVel(dt);
+        const Vel velRight = motorRight.wheelVel(dt);
+        const Distance l = velLeft * dt; //comment on Rover test
+        const Distance r = velRight * dt; //comment on Rover test
+
+        poseUpdate(l, r, velLeft, velRight);
 
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
