@@ -42,3 +42,6 @@ are impractical as water and air vehicles.
 - [Open KF](https://github.com/Al-khwarizmi-780/OpenKF)
 - [Encoders and IMU sensor Fusion](https://medium.com/hackernoon/ghost-iv-sensor-fusion-encoders-imu-c099dd40a7b)
 - [How to fuse sensors stack exchange](https://robotics.stackexchange.com/questions/22115/how-to-actually-fuse-sensor-using-extended-kalman-filter)
+- [Quaternions-part 1](https://www.youtube.com/watch?v=d4EgbgTm0Bg)
+- [Quaternions-part 2]()
+- [BNO085 library](https://github.com/sparkfun/SparkFun_BNO080_Arduino_Library?tab=readme-ov-file)
