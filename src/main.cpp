@@ -9,6 +9,8 @@
 #include <freertos/task.h>
 #include <freertos/atomic.h>
 
+#include <Odometry.h>
+
 
 
 /** trying to improve overall speed of code execution
@@ -46,25 +48,7 @@ using Vel = float;
 
 enum EncoderMode {HALF_QUAD, FULL_QUAD, SINGLE};
 
-struct Pose2D
-{
-    float x;
-    float y;
-    float yaw;
-};
 
-struct Velocity2D
-{
-    float x;
-    float y;
-    float yaw;
-};
-
-struct Odometry
-{
-    Pose2D pose;
-    Velocity2D vel;
-};
 
 struct Differential_drive final : ESP32Encoder{
     Differential_drive(const EncoderPin pA, const EncoderPin pB,
@@ -96,13 +80,13 @@ struct Differential_drive final : ESP32Encoder{
     int64_t prevCount = 0;
 };
 
-Odometry odometry{};
+Odometry2D odometry{};
 static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 auto motorRight = Differential_drive(27, 26);
 auto motorLeft = Differential_drive(12, 14);
 
-inline void poseUpdate(const Distance l, const Distance r, const Vel velL, const Vel velR) //Using 2d odometer, inline to reduce function call overhead
+inline void poseUpdate(const Distance l, const Distance r) //Using 2d odometer, inline to reduce function call overhead
 {
     taskENTER_CRITICAL(&spinlock); //or mutex
     const Distance d = (l + r) / 2;
@@ -122,7 +106,7 @@ inline void poseUpdate(const Distance l, const Distance r, const Vel velL, const
         const Distance l = (motorLeft.getCount() - motorLeft.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
         const Distance r = (motorRight.getCount() - motorRight.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
 
-        poseUpdate(l, r, motorLeft.wheelVel(xFrequency), motorRight.wheelVel(xFrequency));
+        poseUpdate(l, r);
 
         motorRight.prevCount = motorRight.getCount();
         motorLeft.prevCount = motorLeft.getCount();
@@ -149,7 +133,7 @@ void deadReckoning(void *parameter)
         const Distance l = velLeft * dt; //comment on Rover test
         const Distance r = velRight * dt; //comment on Rover test
 
-        poseUpdate(l, r, velLeft, velRight);
+        poseUpdate(l, r);
 
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
