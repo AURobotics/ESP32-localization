@@ -1,3 +1,4 @@
+
 # ESP32-localization:
 ### This projects aims to achieve the localization and mapping of an autonomous Rover or ROV.
 
@@ -52,13 +53,9 @@ of the IMU
 - [ ] __anti-slipping mechanism__
 - [ ] __Optimize task handling__
 
-```mermaid
-graph TD;
-    A-->B;
-    A-->C;
-    B-->D;
-    C-->D;
-```
+
+![img_1.png](img_1.png)
+
 
 ### Resources:
 - [Unscented Kalman Filter for 6DoF IMU](https://github.com/JChunX/ukf)
