@@ -1,13 +1,14 @@
 #include <Arduino.h>
 #include <ESP32Encoder.h>
 #include <esp_timer.h>
-#include <hal/cpu_hal.h>
 
 #include <FreeRTOSConfig.h>
 #include <freertos/semphr.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/atomic.h>
+
+#include <SparkFun_BNO080_Arduino_Library.h>
 
 #include <Odometry.h>
 
@@ -142,10 +143,8 @@ void deadReckoning(void *parameter)
 
 void setup(){
     Serial.begin(115200);
-
 }
 
 void loop(){
-
 
 }

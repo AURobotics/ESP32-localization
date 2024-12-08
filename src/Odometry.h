@@ -39,3 +39,8 @@ struct Odometry
     Twist linear;
     Twist angular;
 };
+
+struct Odometry2D
+{
+    Pose2D pose;
+};
