@@ -27,6 +27,7 @@ the BNO08x has on board sensor 32-bit arm cortex processor that runs
 sensor fusion algorithm to output real time, around 400hz. 
 The sensor can output rotation vector, quaternion, gyro, accelerometer,
 and magnetometer data.
+Due to the limited numbers of pins, BNO will communicate using I2C
 
 ### Sensor fusion and filtering:
 - **kalman filter:** is the best option for linear systems. However, the change in velocity is not linear,
@@ -48,7 +49,9 @@ of the IMU
 ### TO DO: (Prioritized)
 - [x]  __Finish odom__ 
 - [x] __Finish deadReckoning__
+- [x] __BNO085 Setup__
 - [x] __Research Sensor Fusion__
+- [ ] __implement sensor fusion__
 - [ ] __Mapping techniques__
 - [ ] __anti-slipping mechanism__
 - [ ] __Optimize task handling__

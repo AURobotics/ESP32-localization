@@ -1,6 +1,10 @@
 #include <Arduino.h>
-#include <ESP32Encoder.h>
 #include <esp_timer.h>
+#include <esp_log.h>
+
+#include <esp_dsp.h>
+
+#include <Wire.h>
 
 #include <FreeRTOSConfig.h>
 #include <freertos/semphr.h>
@@ -9,8 +13,10 @@
 #include <freertos/atomic.h>
 
 #include <SparkFun_BNO080_Arduino_Library.h>
-
+#include <ESP32Encoder.h>
 #include <Odometry.h>
+
+
 
 
 
@@ -86,6 +92,8 @@ static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 auto motorRight = Differential_drive(27, 26);
 auto motorLeft = Differential_drive(12, 14);
+BNO080 _bno;
+
 
 inline void poseUpdate(const Distance l, const Distance r) //Using 2d odometer, inline to reduce function call overhead
 {
@@ -98,6 +106,14 @@ inline void poseUpdate(const Distance l, const Distance r) //Using 2d odometer, 
     taskEXIT_CRITICAL(&spinlock);
 }
 
+void getAllCalibration(BNO080 *BNO, uint8_t &system, uint8_t &quat, uint8_t &gyro, uint8_t &accel, uint8_t &mag)
+{
+    quat = BNO->getQuatAccuracy();
+    gyro = BNO->getGyroAccuracy();
+    accel = BNO->getAccelAccuracy();
+    mag = BNO->getMagAccuracy();
+    system = (gyro + accel + mag) / 3;
+}
 
  void Odom_2d(void* parameter)
 {
@@ -143,8 +159,69 @@ void deadReckoning(void *parameter)
 
 void setup(){
     Serial.begin(115200);
-}
+    Wire.begin();
 
-void loop(){
+    // IMPORTANT: ESP WILL NOT WORK WITHOUT THE FOLLOWING LINES OF CODE
+    // PLEASE DO NOT CHANGE THE PIN CONFIGURATION
+    //
+    //=======================================
+    /** esp32 BNO085 */
+    delay(100);
+    Wire.flush();
+    _bno.begin(BNO080_DEFAULT_ADDRESS, Wire);
+    Wire.begin(4, 5);
+    Wire.setTimeOut(4000);
+
+    Wire.setClock(400000); //should not exceed 400khz
+
+    _bno.enableRotationVector(10);
+    _bno.enableAccelerometer(10);
+    _bno.enableGyro(10);
+
+    // enabling magnetometer will not return any data.
+
+    //calibrating IMU
+    _bno.calibrateAll();
+
+    //comment below after calibration
+    while (1)
+    {   static uint8_t system, quat, gyro, accel, mag;
+        getAllCalibration(&_bno, system, quat, gyro, accel, mag);
+        if (system == 3) break;
+        Serial.println("System: " + String(system) + "quat: " + String(quat) +
+            " gyro: " + String(gyro) + "mag: " + String(mag) + " accel: " + String(accel)
+            );
+        delay(500);
+    }
+    /** end of BNO085 setup */
+    // library example 14 shows the configuration of 2 sensors
+    // I think the sensor outputs orientation relative to the magnetic north
+    // Example 22 shows how to set a new reference orientation (tare)
+    // Or, to get the reference quaternion, multiply it by its inverse,
+    // its straight forward
+    //
+    //=======================================
+
+}
+    /**
+    *Below is an attempt to create the full fusion algorithm based
+    *it is based on the extended kalman filter, wheels encoders, and IMU
+    *It will be reimplemented using tasks, one of the purposes of doing this
+    *is to know the total time it is required for the full algorithm
+    *as it involves multiple matrix operations and trigonometry functions
+    *please do not worry about the weird implementation, every thing is documented
+    */
+void loop()
+{
+
+    Distance l, r;
+    const Distance d = (l + r) / 2;
+    const Angle d_theta = (r - l) / PITCH;
+    odometry.pose.x = odometry.pose.x + d * cos(odometry.pose.yaw + d_theta / 2);
+    odometry.pose.y = odometry.pose.y + d * sin(odometry.pose.yaw + d_theta / 2);
+    odometry.pose.yaw = odometry.pose.yaw + d_theta;
+
+    dspm::Mat A(3, 3);
+
 
 }
