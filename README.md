@@ -87,20 +87,19 @@ decrease the problem, if not, orientation can be added.
 - taring is essential, as it tells the BNO the inetial position.
   
 ### Testing steps:
-_Each step adds a layer to the previous one_ 
+_Each step adds a layer to the preceding one_
 - [ ] __Step 0:__ Test IMU, calibration, taring, frequency 
 - [ ] __Step 1:__ Test Odometry without the IMU 
-  - [ ] Apply kalman filter to the Odometry
+  - [ ] __Step 1.1:__ Apply kalman filter to the Odometry
+  - [ ] __Step 1.2:__ Use Odometry for linear movements, IMU for angles
+  - [ ] __Step 1.3__ Add IMU to the odometry Model
 - [ ] __Step 2:__ Test Dead Reckoning without the IMU 
-  - [ ] Apply kalman filter for dead reckoning
-- [ ] __Step 3:__ Use Odometry for linear movements, IMU for angles
-  - [ ] Add IMU to the motion Model
-- [ ] __Step 4:__ Use Dead Reckoning for linear movements, IMU for angles 
-- [ ] __Step 5:__ Fuse Odometry with IMU 
-- [ ] __Step 6:__ Fuse Dead reckoning with IMU 
-- [ ] __Step 7:__ Merge accelerometer with the readings 
-- [ ] __step 8:__ Add gps to the party.
-
+  - [ ] __Step 2.1:__ Apply kalman filter for dead reckoning
+  - [ ] __Step 2.2:__ Use Dead Reckoning for linear movements, IMU for angles 
+  - [ ] __Step 2.3:__ Fuse Odometry with IMU 
+  - [ ] __Step 2.5:__ Add IMU to dead reckoning model
+- [ ] __Step 3:__ Merge accelerometer with the readings 
+- [ ] __step 4:__ Add gps to the party.
 
 ### TO DO: (Prioritized)
 - [x]  __Finish odom__ 
