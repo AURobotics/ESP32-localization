@@ -213,7 +213,6 @@ void setup(){
     */
 void loop()
 {
-
     Distance l, r;
     const Distance d = (l + r) / 2;
     const Angle d_theta = (r - l) / PITCH;
@@ -222,6 +221,6 @@ void loop()
     odometry.pose.yaw = odometry.pose.yaw + d_theta;
 
     dspm::Mat A(3, 3);
-
+    //https://github.com/xiaozhengxu/CompRobo_IMU_Sensor_fusion?tab=readme-ov-file
 
 }

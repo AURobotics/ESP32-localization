@@ -12,7 +12,7 @@ linear errors occur as a result of uneven or slippery surfaces. Filters and sens
   - [Basics](https://www.youtube.com/watch?v=LrsTBWf6Wsc&t=498s)
   - [More accurate derivation and equations](https://medium.com/@nahmed3536/wheel-odometry-model-for-differential-drive-robotics-91b85a012299)
   
-![img.png](img.png)
+![img.png](assets/img.png)
 
 
 
@@ -60,8 +60,7 @@ of the IMU
 - [ ] __anti-slipping mechanism__
 - [ ] __Optimize task handling__
 
-
-![image](https://github.com/user-attachments/assets/5f83e7c7-a2dc-4d02-92b2-ea1fc0776f16)
+![image](assets/img_2.png)
 We are following a similar approach - excluding the camera - to the image above, the direction and calibration of the IMU are done automatically on the BNO board. Taring is done at the begining of the 
 run, that is, reset the imu directions to the current state. Calibration of the wheels and motors shall be easier and straight forward, but it is crucial for straight driving and accurate measurements.
 
