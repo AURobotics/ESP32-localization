@@ -14,9 +14,6 @@ linear errors occur as a result of uneven or slippery surfaces. Filters and sens
   
 ![img.png](assets/img.png)
 
-
-
-
 - **Dead reckoning:** relies on sensors that output acceleration, velocity, and direction. Integration drift error accumulates over time. Used in situation where encoders 
 are impractical as water and air vehicles. Dead reckoning is the go as
 the wheel velocities are sent when a request is made from the esp.
@@ -28,6 +25,38 @@ sensor fusion algorithm to output real time, around 400hz.
 The sensor can output rotation vector, quaternion, gyro, accelerometer,
 and magnetometer data.
 Due to the limited numbers of pins, BNO will communicate using I2C
+Sparkfun library can support multiple sensors.
+
+### Equations for linear Kalman filter:
+$$
+P_{k∣k−1}​=P_{k−1∣k−1}​+Q
+$$
+
+- $P_{k∣k−1​}$: predicted estimate covariance (error estimate) at time kk.
+- $P_{k−1∣k−1}$: the updated error estimate from the previous step.
+- $Q$: process variance.
+  The Kalman gain determines how much the new measurement should adjust the estimate. It balances the trust between the prediction and the measurement.
+
+$$
+K_k = \frac{P_{K|k-1}}{P_{K|k-1}+R}
+$$
+
+- $R$: measurement variance.
+
+$$
+X_{k|k} = X_{k|k-1} + K_k * (Z_k - X_{k|k-1})
+$$
+
+- $X_{k|k}$: The updated state estimate after incorporating the new measurement.
+- $X_{k|k-1}$: The predicted state estimate.
+- $Z_k$: The new measurement.
+- $K_k$: The Kalman gain.
+
+Updating the error estimate:
+
+$$
+P_{k∣k​}=(1−K_k​)P_{k∣k−1}
+$$
 
 ### Sensor fusion and filtering:
 - **kalman filter:** is the best option for linear systems. However, the change in velocity is not linear,
@@ -38,17 +67,40 @@ library, it is optimized to be efficient.
 - **Unscented kalman filter:** can handle the cases where the non-linearity 
 increases. However, it is computationally expensive. However, it is the way 
 
-### Then how does it all work:
-1. User should specify which method to use (Odometer, dead reckoning)
-2. a pose 3d is calulated from the wheel and from the rotation vector
-of the IMU
-3. data are fused together using EKF
-4. EKF is calibrated
 
-### Problems to be adressed:
+### Extended kalman filter:
+Everything is similar with the Linear Kalman filter, however, this uses 
+Taylor polinomials to normalize non-linear systems.
+![](assets/img_3.png)
+*This is the model and prediction step*
+
+![](assets/img_4.png)
+*Correction Steps*
+
+### Problems to be addressed:
 - regular kalman filter can be applied to yaw angle for regular IMUs. However, as I stated above, BNO does everything for us.
-- slipping while rotating:
+- slipping while rotating: can be corrected by fusing imu with odometry
+- bumps and irregularities: add the acceleration to the kalman filter should
+decrease the problem, if not, orientation can be added.
+- the acceleration on the z-axis can ruin the localization system, some of it will leak 
+    into other acceleration vectors.
+- taring is essential, as it tells the BNO the inetial position.
   
+### Testing steps:
+_Each step adds a layer to the previous one_ 
+- [ ] __Step 0:__ Test IMU, calibration, taring, frequency 
+- [ ] __Step 1:__ Test Odometry without the IMU 
+  - [ ] Apply kalman filter to the Odometry
+- [ ] __Step 2:__ Test Dead Reckoning without the IMU 
+  - [ ] Apply kalman filter for dead reckoning
+- [ ] __Step 3:__ Use Odometry for linear movements, IMU for angles
+  - [ ] Add IMU to the motion Model
+- [ ] __Step 4:__ Use Dead Reckoning for linear movements, IMU for angles 
+- [ ] __Step 5:__ Fuse Odometry with IMU 
+- [ ] __Step 6:__ Fuse Dead reckoning with IMU 
+- [ ] __Step 7:__ Merge accelerometer with the readings 
+- [ ] __step 8:__ Add gps to the party.
+
 
 ### TO DO: (Prioritized)
 - [x]  __Finish odom__ 
@@ -65,9 +117,10 @@ We are following a similar approach - excluding the camera - to the image above,
 run, that is, reset the imu directions to the current state. Calibration of the wheels and motors shall be easier and straight forward, but it is crucial for straight driving and accurate measurements.
 
 
-### Conclusion: 
+### Important ressources: 
 [This repo](https://github.com/xiaozhengxu/CompRobo_IMU_Sensor_fusion?tab=readme-ov-file), and its [explaination](https://xiaozhengxu.github.io/CompRobo_IMU_Sensor_fusion/), provide a very close explaination of what we are trying to achieve, however, they do not account for bumps or irregularities in the track.
 
+From the above resources, the part we
     
 
 
