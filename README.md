@@ -45,6 +45,10 @@ of the IMU
 3. data are fused together using EKF
 4. EKF is calibrated
 
+### Problems to be adressed:
+- regular kalman filter can be applied to yaw angle for regular IMUs. However, as I stated above, BNO does everything for us.
+- slipping while rotating:
+  
 
 ### TO DO: (Prioritized)
 - [x]  __Finish odom__ 
@@ -57,7 +61,15 @@ of the IMU
 - [ ] __Optimize task handling__
 
 
-![img_1.png](img_1.png)
+![image](https://github.com/user-attachments/assets/5f83e7c7-a2dc-4d02-92b2-ea1fc0776f16)
+We are following a similar approach - excluding the camera - to the image above, the direction and calibration of the IMU are done automatically on the BNO board. Taring is done at the begining of the 
+run, that is, reset the imu directions to the current state. Calibration of the wheels and motors shall be easier and straight forward, but it is crucial for straight driving and accurate measurements.
+
+
+### Conclusion: 
+[This repo](https://github.com/xiaozhengxu/CompRobo_IMU_Sensor_fusion?tab=readme-ov-file), and its [explaination](https://xiaozhengxu.github.io/CompRobo_IMU_Sensor_fusion/), provide a very close explaination of what we are trying to achieve, however, they do not account for bumps or irregularities in the track.
+
+    
 
 
 ### Resources:
@@ -75,5 +87,5 @@ of the IMU
 - [Quaternions-part 2]()
 - [BNO085 library](https://github.com/sparkfun/SparkFun_BNO080_Arduino_Library?tab=readme-ov-file)
 - [Visualizing Quaternions](https://eater.net/quaternions/video/stereo4d)
-- [Ros robot localization package](9https://eater.net/quaternions/video/stereo4d)
+- [Ros robot localization package](9https://eater.net/quaternions/video/stereo4d), the package itself is not docuemnted, not recommended overall
 - [Sensor fusion full course](https://www.youtube.com/watch?v=FGaOxS3-8gU&list=PLluhvIZgE0mP3Cm36ua4i98A-G43Lw_KU&index=23)
