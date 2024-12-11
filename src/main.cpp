@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <esp_timer.h>
-#include <esp_log.h>
+// #include <esp_log.h>
 
 #include <esp_dsp.h>
 
@@ -12,11 +12,9 @@
 #include <freertos/task.h>
 #include <freertos/atomic.h>
 
-#include <SparkFun_BNO080_Arduino_Library.h>
+// #include <SparkFun_BNO080_Arduino_Library.h>
 #include <ESP32Encoder.h>
 #include <Odometry.h>
-
-
 
 
 
@@ -49,20 +47,24 @@ void measure_important_function(void) {
 #define PITCH 0.5 //width of the robot measured from the center of the wheels
 
 using EncoderPin = uint8_t;
+using MotorPin = uint8_t;
 using Distance = float;
 using Angle = float;
 using Vel = float;
 
+
 enum EncoderMode {HALF_QUAD, FULL_QUAD, SINGLE};
-
-
+enum MotorDriection {CW = 0, CCW = -1};
 
 struct Differential_drive final : ESP32Encoder{
-    Differential_drive(const EncoderPin pA, const EncoderPin pB,
+    Differential_drive(const EncoderPin pA, const EncoderPin pB, const MotorPin dirA, const MotorPin dirB, const MotorPin en,
         const EncoderMode encoderMode = FULL_QUAD){
 
-        useInternalWeakPullResistors = puType::up;
+        static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
+        taskENTER_CRITICAL(&spinlock);
 
+        //-----------Setting encoders-----------//
+        useInternalWeakPullResistors = puType::up;
         switch (encoderMode)
         {
         case EncoderMode::FULL_QUAD:
@@ -74,7 +76,15 @@ struct Differential_drive final : ESP32Encoder{
         case EncoderMode::SINGLE:
             attachSingleEdge(pA, pB);
         }
-        clearCount();
+        this->clearCount();
+
+        //-----------Setting motors-----------//
+        ledcSetup(ledcChannelCount, 30000, 20);
+        pinMode(ledcChannelCount, OUTPUT);
+        ledcAttachPin(en, ledcChannelCount);
+        ledcChannelCount++;
+        //------------------------------------//
+        taskEXIT_CRITICAL(&spinlock);
     }
 
     [[nodiscard]] float wheelVel(const uint8_t samplingTime)
@@ -82,17 +92,39 @@ struct Differential_drive final : ESP32Encoder{
         return (getCount() - prevCount) * CIRCUMFERENCE / samplingTime;
     }
 
-    ~Differential_drive() = default;
 
+
+    void drive()
+    {
+
+
+
+    }
+
+    ~Differential_drive() = default;
+public:
     int64_t prevCount = 0;
+
+    static void setLedcChannelCount(const uint8_t n) {
+        ledcChannelCount = n;
+    }
+
+
+private:
+    MotorPin DirA;
+    MotorPin DirB;
+    MotorPin dir;
+    static uint8_t ledcChannelCount;
 };
 
 Odometry2D odometry{};
 static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-auto motorRight = Differential_drive(27, 26);
-auto motorLeft = Differential_drive(12, 14);
-BNO080 _bno;
+auto motorFrontRight = Differential_drive(14, 27, 1,2,1);
+auto motorFrontLeft = Differential_drive(26, 25,1,1,1);
+auto motorBackRight = Differential_drive(33, 32,1,1,1);
+auto motorBackLeft = Differential_drive(35, 34,1,1,1);
+// BNO080 _bno;
 
 
 inline void poseUpdate(const Distance l, const Distance r) //Using 2d odometer, inline to reduce function call overhead
@@ -106,27 +138,27 @@ inline void poseUpdate(const Distance l, const Distance r) //Using 2d odometer, 
     taskEXIT_CRITICAL(&spinlock);
 }
 
-void getAllCalibration(BNO080 *BNO, uint8_t &system, uint8_t &quat, uint8_t &gyro, uint8_t &accel, uint8_t &mag)
-{
-    quat = BNO->getQuatAccuracy();
-    gyro = BNO->getGyroAccuracy();
-    accel = BNO->getAccelAccuracy();
-    mag = BNO->getMagAccuracy();
-    system = (gyro + accel + mag) / 3;
-}
+// void getAllCalibration(BNO080 *BNO, uint8_t &system, uint8_t &quat, uint8_t &gyro, uint8_t &accel, uint8_t &mag)
+// {
+//     quat = BNO->getQuatAccuracy();
+//     gyro = BNO->getGyroAccuracy();
+//     accel = BNO->getAccelAccuracy();
+//     mag = BNO->getMagAccuracy();
+//     system = (gyro + accel + mag) / 3;
+// }
 
  void Odom_2d(void* parameter)
 {
      constexpr TickType_t xFrequency = pdMS_TO_TICKS(10);
     TickType_t xLastWakeTime = xTaskGetTickCount();
     for (;;) {
-        const Distance l = (motorLeft.getCount() - motorLeft.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
-        const Distance r = (motorRight.getCount() - motorRight.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
+        const Distance l = (motorFrontLeft.getCount() - motorFrontLeft.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
+        const Distance r = (motorFrontRight.getCount() - motorFrontRight.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
 
         poseUpdate(l, r);
 
-        motorRight.prevCount = motorRight.getCount();
-        motorLeft.prevCount = motorLeft.getCount();
+        motorFrontRight.prevCount = motorFrontRight.getCount();
+        motorFrontLeft.prevCount = motorFrontLeft.getCount();
 
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
@@ -145,8 +177,8 @@ void deadReckoning(void *parameter)
 
         //integration functions for rover test.
 
-        const Vel velLeft = motorLeft.wheelVel(dt);
-        const Vel velRight = motorRight.wheelVel(dt);
+        const Vel velLeft = motorFrontLeft.wheelVel(dt);
+        const Vel velRight = motorFrontRight.wheelVel(dt);
         const Distance l = velLeft * dt; //comment on Rover test
         const Distance r = velRight * dt; //comment on Rover test
 
@@ -159,40 +191,45 @@ void deadReckoning(void *parameter)
 
 void setup(){
     Serial.begin(115200);
-    Wire.begin();
+    esp_timer_init();
+    Differential_drive::setLedcChannelCount(0);
+
+    // Wire.begin();
 
     // IMPORTANT: ESP WILL NOT WORK WITHOUT THE FOLLOWING LINES OF CODE
     // PLEASE DO NOT CHANGE THE PIN CONFIGURATION
     //
     //=======================================
     /** esp32 BNO085 */
-    delay(100);
-    Wire.flush();
-    _bno.begin(BNO080_DEFAULT_ADDRESS, Wire);
-    Wire.begin(4, 5);
-    Wire.setTimeOut(4000);
+    // delay(100);
+    // Wire.flush();
+    // _bno.begin(BNO080_DEFAULT_ADDRESS, Wire);
+    // Wire.begin(4, 5);
+    // Wire.setTimeOut(4000);
+    //
+    // Wire.setClock(400000); //should not exceed 400khz
+    //
+    // _bno.enableRotationVector(10);
+    // _bno.enableAccelerometer(10);
+    // _bno.enableGyro(10);
+    //
+    // // enabling magnetometer will not return any data.
+    //
+    // //calibrating IMU
+    // _bno.calibrateAll();
+    //
+    // //comment below after calibration
 
-    Wire.setClock(400000); //should not exceed 400khz
 
-    _bno.enableRotationVector(10);
-    _bno.enableAccelerometer(10);
-    _bno.enableGyro(10);
-
-    // enabling magnetometer will not return any data.
-
-    //calibrating IMU
-    _bno.calibrateAll();
-
-    //comment below after calibration
-    while (1)
-    {   static uint8_t system, quat, gyro, accel, mag;
-        getAllCalibration(&_bno, system, quat, gyro, accel, mag);
-        if (system == 3) break;
-        Serial.println("System: " + String(system) + "quat: " + String(quat) +
-            " gyro: " + String(gyro) + "mag: " + String(mag) + " accel: " + String(accel)
-            );
-        delay(500);
-    }
+    // while (1)
+    // {   static uint8_t system, quat, gyro, accel, mag;
+    //     getAllCalibration(&_bno, system, quat, gyro, accel, mag);
+    //     if (system == 3) break;
+    //     Serial.println("System: " + String(system) + "quat: " + String(quat) +
+    //         " gyro: " + String(gyro) + "mag: " + String(mag) + " accel: " + String(accel)
+    //         );
+    //     delay(500);
+    // }
     /** end of BNO085 setup */
     // library example 14 shows the configuration of 2 sensors
     // I think the sensor outputs orientation relative to the magnetic north
@@ -213,14 +250,30 @@ void setup(){
     */
 void loop()
 {
-    Distance l, r;
+    static unsigned long prev_time = esp_timer_get_time();
+    Serial.println("Time: " + String(esp_timer_get_time() - prev_time));
+    prev_time = esp_timer_get_time();
+
+    const Distance l = (motorFrontLeft.getCount() - motorFrontLeft.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
+    const Distance r = (motorFrontRight.getCount() - motorFrontRight.prevCount) * CIRCUMFERENCE / ENCODER_RESOLUTION;
+
+    motorFrontRight.prevCount = motorFrontRight.getCount();
+    motorFrontLeft.prevCount = motorFrontLeft.getCount();
+
     const Distance d = (l + r) / 2;
     const Angle d_theta = (r - l) / PITCH;
+
     odometry.pose.x = odometry.pose.x + d * cos(odometry.pose.yaw + d_theta / 2);
     odometry.pose.y = odometry.pose.y + d * sin(odometry.pose.yaw + d_theta / 2);
     odometry.pose.yaw = odometry.pose.yaw + d_theta;
 
-    dspm::Mat A(3, 3);
-    //https://github.com/xiaozhengxu/CompRobo_IMU_Sensor_fusion?tab=readme-ov-file
+    Serial.print("X: " + String(odometry.pose.x) + " \t");
+    Serial.print("Y: " + String(odometry.pose.y) + " \t");
+    Serial.print("Yaw: " + String(odometry.pose.yaw) + " \t");
+    Serial.println();
 
+    //https://github.com/xiaozhengxu/CompRobo_IMU_Sensor_fusion?tab=readme-ov-file
 }
+
+
+
