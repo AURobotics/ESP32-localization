@@ -140,3 +140,4 @@ From the above resources, the part we
 - [Visualizing Quaternions](https://eater.net/quaternions/video/stereo4d)
 - [Ros robot localization package](9https://eater.net/quaternions/video/stereo4d), the package itself is not docuemnted, not recommended overall
 - [Sensor fusion full course](https://www.youtube.com/watch?v=FGaOxS3-8gU&list=PLluhvIZgE0mP3Cm36ua4i98A-G43Lw_KU&index=23)
+- [Bayes' Theorem](https://www.youtube.com/watch?v=HZGCoVF3YvM)
