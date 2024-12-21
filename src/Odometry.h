@@ -34,8 +34,7 @@ struct Twist
 
 struct Odometry
 {
-    Point pose;
-    Quaternion orientation;
+    Pose2D pose;
     Twist linear;
     Twist angular;
 };
